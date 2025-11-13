@@ -73,3 +73,36 @@ While the overall accuracy dropped, the **Recall for Attrition jumped from 32% t
 ### Final ROC Curve (Data Tes)
 <img width="570" height="565" alt="image" src="https://github.com/user-attachments/assets/ad41d0f7-b9b4-4996-85a7-d33f5eb643e4" />
 ``
+## 7. How to Run
+
+Follow these steps to run the analysis on your local machine.
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/muhamadlevin/HR-Logistic-Regression.git](https://github.com/muhamadlevin/HR-Logistic-Regression.git)
+    cd HR-Logistic-Regression
+    ```
+
+2.  **Create and activate a virtual environment (Recommended):**
+    ```bash
+    # Create the environment
+    python -m venv venv
+    
+    # Activate on Windows
+    .\venv\Scripts\activate
+    
+    # Activate on macOS/Linux
+    source venv/bin/activate
+    ```
+
+3.  **Install the required dependencies:**
+    (This uses the `requirements.txt` file you created.)
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Launch JupyterLab:**
+    ```bash
+    jupyterlab
+    ```
+    This will open JupyterLab in your web browser. From there, you can open and run the `EDAmodul5.ipynb` notebook.
