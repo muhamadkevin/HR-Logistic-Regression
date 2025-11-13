@@ -1,67 +1,75 @@
-# Employee Attrition Prediction using Logistic Regression
+# Employee Attrition Prediction (Optimized for Recall)
 
-This project conducts an end-to-end analysis of the IBM HR Analytics Employee Attrition dataset from Kaggle. The primary goal is to understand the key factors driving employee attrition and to build an optimized predictive model using Logistic Regression.
+![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)
+![Scikit-learn](https://img.shields.io/badge/scikit--learn-1.x-orange?logo=scikit-learn)
+![Pandas](https://img.shields.io/badge/Pandas-1.x-blue?logo=pandas)
 
-The final model achieves a mean cross-validated accuracy of **87.28%**.
+This project builds an end-to-end machine learning model to predict employee attrition (turnover) using the IBM HR Analytics dataset. The primary goal is not just to build an *accurate* model, but a *useful* one that can proactively identify employees at high risk of leaving.
 
 ---
 
-## 1. Exploratory Data Analysis (EDA)
+## 1. The Business Problem
 
-The initial analysis focused on identifying the main drivers of employee attrition. The data was visualized to uncover relationships between features and the target variable (`Attrition`).
+Employee turnover is expensive. It costs companies time and money to recruit, hire, and train new employees. By identifying employees who are likely to leave, HR can proactively intervene with retention strategies (e.g., salary adjustments, workload changes, or new projects) to improve morale and reduce attrition.
 
-Key insights from the EDA include:
-* **Overtime:** Employees who work overtime have a significantly higher rate of attrition.
-* **Monthly Income:** Lower monthly income is strongly correlated with a higher likelihood of attrition.
+## 2. The Challenge: A Highly Imbalanced Dataset
 
-These two factors were hypothesized to be the most significant predictors.
+Exploratory Data Analysis (EDA) revealed a significant challenge: the dataset is **highly imbalanced**.
+* **No Attrition (Class 0):** ~84% of the dataset
+* **Attrition (Class 1):** ~16% of the dataset
 
-## 2. Model Development & Preprocessing
+A model optimized for pure **Accuracy** will simply learn to "always predict No Attrition" and achieve a high, but misleading, score. The true test of this model is its ability to correctly identify the rare "Attrition" cases.
 
-To build an interpretable yet powerful predictive model, **Logistic Regression** was chosen. A sophisticated preprocessing pipeline was constructed using Scikit-learn's `Pipeline` and `ColumnTransformer` to prepare the data for the linear model.
+## 3. Key EDA Insights
 
-This preprocessing workflow includes:
+Initial analysis confirmed several common-sense drivers of attrition:
+* **Overtime:** Employees who work overtime are significantly more likely to leave.
+* **Monthly Income:** Lower income levels are strongly correlated with a higher probability of attrition.
+* **Job Role:** Certain roles (e.g., Sales Representative) had much higher turnover than others (e.g., Research Director).
 
-* **Feature Separation:** Data was split into continuous, categorical (text-based), and ordinal (numeric categories) features.
-* **One-Hot Encoding (OHE):** Categorical features (like `JobRole`, `MaritalStatus`) were one-hot encoded. `drop='first'` was used to prevent multicollinearity, a requirement for stable Logistic Regression.
-* **Polynomial Features:** `PolynomialFeatures` was applied to the continuous numeric features to allow the linear model to capture non-linear relationships and interactions.
-* **Scaling:** `StandardScaler` was applied *after* the polynomial transformation to scale all features, which is essential for the performance of a regularized Logistic Regression model.
+## 4. Modeling & Pipeline
 
-## 3. Hyperparameter Tuning (GridSearchCV)
+A sophisticated preprocessing and modeling pipeline was built using `scikit-learn` to ensure robust and reproducible results.
 
-`GridSearchCV` was used to systematically test and find the optimal combination of preprocessing steps and model parameters. This ensures the best possible performance and generalizability.
+* **Model:** `LogisticRegression` was chosen because its coefficients are interpretable, allowing us to explain *why* the model makes certain predictions.
+* **Preprocessing:** A `ColumnTransformer` was used to apply:
+    * `OneHotEncoder` to categorical features.
+    * `PolynomialFeatures` to key numeric features (to capture non-linear relationships).
+    * `StandardScaler` to all features, which is essential for regularized models.
 
-The grid search was configured to tune the following parameters simultaneously:
+## 5. Model Iteration: The "Accuracy Trap" vs. The Useful Model
 
-* **Polynomial Degree:** The `degree` of the `PolynomialFeatures` (testing `[2, 3, 4, 5]`).
-* **Regularization Penalty:** The `penalty` for `LogisticRegression` (testing `['l1' (Lasso), 'l2' (Ridge)]`).
-* **Regularization Strength:** The `C` parameter for `LogisticRegression` (testing `[0.001, 0.01, 0.1, 1.0, 10.0]`).
+This project demonstrates the critical importance of choosing the correct evaluation metric.
 
-## 4. Results & Conclusion
+### Iteration 1: The "Accuracy Trap" (Baseline Model)
+The initial `GridSearchCV` was run using the default `scoring='accuracy'`.
+* **Result:** A high **Accuracy of 87.28%**.
+* **The Problem:** The `classification_report` showed this model was useless.
+    * **Recall (Class 1): 0.32** — It failed to identify **68%** of employees who were about to leave.
 
-The hyperparameter tuning process (totaling 200 model fits) identified the following optimal parameters:
+### Iteration 2: Optimizing for What Matters (The Final Model)
+To fix this, the model was re-optimized by adding **`class_weight='balanced'`** to the `LogisticRegression` estimator. This forces the model to pay a heavier penalty for misclassifying the rare "Attrition" class. This trade-off accepting a lower overall accuracy to gain a *much* higher recall.
 
-* **Best `degree`:** `2`
-* **Best `penalty`:** `'l2'` (Ridge Regularization)
-* **Best `C`:** `0.1`
+## 6. Final Model Results
 
-This combination achieved a final mean cross-validated accuracy of **87.28%**, an improvement over the initial baseline of 86.94%.
+The final, optimized model provides a far more actionable tool for HR. The key decision was to optimize for **Recall** on the "Attrition" class, accepting a necessary trade-off in Precision and overall Accuracy to achieve this.
 
-This result indicates that a simpler `degree=2` model (parabolic) with strong L2 regularization (`C=0.1`) provided the best balance, preventing the overfitting that occurred with more complex degrees.
+The final results from the optimized model (using `class_weight='balanced'`) on the test data are:
 
-Finally, the coefficients of this best-fit model were extracted to validate the initial EDA hypotheses. The results confirmed:
-1.  **`OverTime`** had the largest positive coefficient, proving it is the strongest predictor for attrition.
-2.  **`MonthlyIncome`** had a strong negative coefficient, confirming that lower pay is a significant driver of attrition.
+| Metric | Final Score |
+| :--- | :--- |
+| **Recall (Class 1)** | **70%** |
+| **AUC Score** | 0.81 |
+| F1-Score (Class 1) | 48% |
+| Precision (Class 1) | 37% |
+| Accuracy | 76% |
 
-## 5. Key Dependencies
+While the overall accuracy dropped, the **Recall for Attrition jumped from 32% to 70%**. This means the model now successfully identifies 70% of at-risk employees, a massive improvement in business value.
 
-* `pandas`
-* `numpy`
-* `matplotlib`
-* `seaborn`
-* `scikit-learn` (Pipeline, LogisticRegression, GridSearchCV, ColumnTransformer, PolynomialFeatures, StandardScaler)
+### Final Confusion Matrix (Data Tes)
+<img width="657" height="561" alt="image" src="https://github.com/user-attachments/assets/cbbc69bd-da9b-4a5a-8bef-5021041abc87" />
+``
 
-## 6. Repository Contents
-
-* `EDAmodul5.ipynb`: The main Jupyter Notebook containing all analysis, preprocessing, modeling, and evaluation code.
-* `WA_Fn-UseC_-HR-Employee-Attrition.csv`: The raw dataset used for this project.
+### Final ROC Curve (Data Tes)
+<img width="570" height="565" alt="image" src="https://github.com/user-attachments/assets/ad41d0f7-b9b4-4996-85a7-d33f5eb643e4" />
+``
